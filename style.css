@@ -1,0 +1,22 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#app {
+    text-align: center;
+}
+
+#movies-list {
+    margin-top: 20px;
+}
+
+.movie {
+    margin: 10px 0;
+}

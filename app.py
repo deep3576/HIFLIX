@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory, render_template
 import os
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-# only playable files no folders.
-MOVIES_FOLDER = 'E:/MoviesDatabase/'
+MOVIES_FOLDER = 'E:/MoviesDatabase'
 THUMBNAILS_FOLDER = 'static/thumbnails'
 
 # Endpoint to get list of movies
@@ -28,4 +27,4 @@ def get_thumbnail(thumbnail_name):
     return send_from_directory(THUMBNAILS_FOLDER, thumbnail_name)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

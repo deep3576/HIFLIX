@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Movie App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <h1>File Upload and Management</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Upload">
+    </form>
 </head>
 <body>
     <div id="app">

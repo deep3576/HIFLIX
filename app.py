@@ -17,7 +17,7 @@ def upload_file():
         return redirect(request.url)
     file = request.files['file']
     if file.filename == '':
-        return redirect(request.url)
+        return redirect(url_for('index'))
     if file :
         filename = file.filename
         file.save(os.path.join(app.config['MOVIES_FOLDER'], filename))

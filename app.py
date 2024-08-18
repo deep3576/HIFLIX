@@ -22,9 +22,11 @@ def get_movies():
     movies = os.listdir(MOVIES_FOLDER)
     return jsonify(movies)
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     file = request.files['file']
+    start = int(request.form.get('start', 0))
     filename = file.filename
     temp_filename = filename.replace('.', '_temp.')
 
@@ -39,22 +41,19 @@ def upload_file():
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
 
-@app.route('/upload/verify', methods=['GET'])
-def verify_upload():
+@app.route('/upload/rename', methods=['POST'])
+def rename_file():
     filename = request.args.get('filename')
-    temp_filename = filename.replace('.', '_temp.')
+    temp_filename = request.args.get('tempFilename')
 
-    # Define the path for the temporary file
     temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
-    
+    final_path = os.path.join(UPLOAD_FOLDER, filename)
+
     if os.path.exists(temp_path):
-        file_size = os.path.getsize(temp_path)
+        os.rename(temp_path, final_path)
+        return jsonify({'message': 'File renamed successfully'})
     else:
-        file_size = 0
-
-    return jsonify({'size': file_size})
-
-
+        return jsonify({'message': 'File not found'}), 404
 
 
 # Endpoint to stream a movie

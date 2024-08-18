@@ -36,10 +36,6 @@ def upload_file():
         chunk_filename = os.path.join(UPLOAD_FOLDER, file.filename)
         with open(chunk_filename, 'ab') as chunk_file:
             chunk_file.write(file.read())
-
-        # Check if all chunks have been received and then decompress
-        # For simplicity, assuming a single chunk is received for demonstration.
-        # In a complete implementation, you need to manage chunk identifiers and validate complete upload.
         try:
             decompressed_file_path = os.path.join(UPLOAD_FOLDER, file.filename.rstrip('.gz'))
             with open(chunk_filename, 'rb') as compressed_file:

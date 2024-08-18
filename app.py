@@ -22,7 +22,6 @@ def get_movies():
     movies = os.listdir(MOVIES_FOLDER)
     return jsonify(movies)
 
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -32,34 +31,14 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
-    chunk_filename = os.path.join(UPLOAD_FOLDER, file.filename)
-
-    # Save the compressed chunk
-    with open(chunk_filename, 'ab') as chunk_file:
-        chunk_file.write(file.read())
-
-    # For simplicity, this example assumes a single chunk. In a real application, you should
-    # implement logic to check if all chunks have been uploaded.
+    # Save the file directly
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
 
     try:
-        # Check if the file is complete before decompressing
-        decompressed_file_path = os.path.join(UPLOAD_FOLDER, file.filename.rstrip('.gz'))
-        
-        # Ensure the file is complete before attempting to decompress
-        if os.path.getsize(chunk_filename) > 0:
-            with open(chunk_filename, 'rb') as compressed_file:
-                with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
-                    with open(decompressed_file_path, 'wb') as decompressed_file:
-                        decompressed_file.write(gz_file.read())
-            os.remove(chunk_filename)  # Optionally remove the compressed file
-
-            return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
-        else:
-            return jsonify({'error': 'Incomplete file received'}), 400
-
+        file.save(file_path)
+        return jsonify({'message': 'File uploaded successfully'}), 200
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
 
 
 # Endpoint to stream a movie

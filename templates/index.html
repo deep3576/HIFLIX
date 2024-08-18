@@ -6,13 +6,12 @@
     <title>My Movie App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-    <h1>Upload File</h1>
+
+    <h1>Upload File to Server </h1>
     <input type="file" id="fileInput" />
     <button id="uploadButton">Upload</button>
     <div id="statusMessage"></div>
     <progress id="progressBar" value="0" max="100" style="width: 100%; margin-top: 10px;"></progress>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
     <script>
         const CHUNK_SIZE = 1024 * 1024; // 1 MB
 
@@ -26,7 +25,7 @@
                 const end = Math.min(start + CHUNK_SIZE, file.size);
                 const chunk = file.slice(start, end);
                 const formData = new FormData();
-                formData.append('file', chunk, 'chunk.gz'); // Give a name to each chunk
+                formData.append('file', chunk, file.name); // Use the original file name
 
                 try {
                     const response = await fetch(uploadUrl, {
@@ -46,7 +45,7 @@
                     return;
                 }
             }
-            statusMessage.textContent = 'File uploaded and decompressed successfully';
+            statusMessage.textContent = 'File uploaded successfully';
         }
 
         document.getElementById('uploadButton').addEventListener('click', async function() {
@@ -58,29 +57,17 @@
 
             if (file) {
                 uploadButton.disabled = true;
-                statusMessage.textContent = 'Compressing file...';
+                statusMessage.textContent = 'Uploading file...';
 
-                const reader = new FileReader();
+                await uploadFileInChunks(file);
 
-                reader.onload = async function(event) {
-                    // Compress the file data using pako
-                    const compressedData = pako.gzip(new Uint8Array(event.target.result));
-                    const compressedBlob = new Blob([compressedData], { type: 'application/gzip' });
-
-                    statusMessage.textContent = 'Uploading file...';
-                    await uploadFileInChunks(compressedBlob);
-
-                    // Reset status and button after upload
-                    uploadButton.disabled = false;
-                };
-
-                reader.readAsArrayBuffer(file);
+                // Reset status and button after upload
+                uploadButton.disabled = false;
             } else {
                 alert('No file selected');
             }
         });
     </script>
-
 </head>
 <body>
     <div id="app">

@@ -25,7 +25,6 @@ def get_movies():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     file = request.files['file']
-    start = int(request.form.get('start', 0))
     filename = file.filename
     temp_filename = filename.replace('.', '_temp.')
 
@@ -39,21 +38,6 @@ def upload_file():
     
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
-
-@app.route('/upload/status', methods=['GET'])
-def upload_status():
-    filename = request.args.get('filename')
-    temp_filename = filename.replace('.', '_temp.')
-
-    # Define the path for the temporary file
-    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
-    
-    if os.path.exists(temp_path):
-        file_size = os.path.getsize(temp_path)
-    else:
-        file_size = 0
-
-    return jsonify({'resumeFrom': file_size})
 
 @app.route('/upload/verify', methods=['GET'])
 def verify_upload():

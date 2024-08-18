@@ -128,21 +128,6 @@
                 let uploadedBytes = 0;
                 let totalUploadTime = 0; // Total time taken to upload
                 let chunksUploaded = 0;
-                let resumeFrom = 0;
-    
-                // Get the resume point
-                try {
-                    const response = await fetch(`${uploadUrl}/status?filename=${encodeURIComponent(originalFileName)}`);
-                    const data = await response.json();
-                    if (data.resumeFrom !== undefined) {
-                        resumeFrom = data.resumeFrom;
-                        start = resumeFrom;
-                    }
-                } catch (error) {
-                    statusMessage.textContent = `Error fetching upload status: ${error.message}`;
-                    statusMessage.className = 'error';
-                    return;
-                }
     
                 // Change file extension before upload
                 const tempFile = new File([file], file.name.replace(/\.[^/.]+$/, ".temp"), {
@@ -154,7 +139,6 @@
                     const chunk = file.slice(start, end);
                     const formData = new FormData();
                     formData.append('file', chunk, tempFile.name);
-                    formData.append('start', start); // Add start byte position for resuming
     
                     let uploadStartTime = Date.now();
                     try {
@@ -218,18 +202,6 @@
                 setTimeout(() => {
                     window.location.href = '/'; // Redirect to home page
                 }, 1000); // Delay to ensure the status message is visible
-    
-                // Verify file size after upload
-                try {
-                    const response = await fetch(uploadUrl + '/verify?filename=' + encodeURIComponent(originalFileName));
-                    const result = await response.json();
-                    if (result.size !== file.size) {
-                        throw new Error('File size mismatch after upload');
-                    }
-                } catch (error) {
-                    statusMessage.textContent = `Verification error: ${error.message}`;
-                    statusMessage.className = 'error';
-                }
             }
     
             document.getElementById('uploadButton').addEventListener('click', async function() {
@@ -254,6 +226,7 @@
                 }
             });
         </script>
+    </body>
     </body>
 </head>
 <body>

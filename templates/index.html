@@ -13,6 +13,41 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
     <script>
+        const CHUNK_SIZE = 1024 * 1024; // 1 MB
+
+        async function uploadFileInChunks(file) {
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            const uploadUrl = '/upload'; // Your server endpoint
+            const statusMessage = document.getElementById('statusMessage');
+            const progressBar = document.getElementById('progressBar');
+
+            for (let start = 0; start < file.size; start += CHUNK_SIZE) {
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                formData.append('file', chunk);
+
+                try {
+                    const response = await fetch(uploadUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const uploadedChunks = Math.ceil(end / CHUNK_SIZE);
+                        const percentComplete = (uploadedChunks / totalChunks) * 100;
+                        progressBar.value = percentComplete;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                } catch (error) {
+                    statusMessage.textContent = `Upload error: ${error.message}`;
+                    return;
+                }
+            }
+            statusMessage.textContent = 'File uploaded and decompressed successfully';
+        }
+
         document.getElementById('uploadButton').addEventListener('click', async function() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
@@ -21,46 +56,21 @@
             const progressBar = document.getElementById('progressBar');
 
             if (file) {
-                // Disable the upload button and show status message
                 uploadButton.disabled = true;
-                statusMessage.textContent = 'Uploading...';
+                statusMessage.textContent = 'Compressing file...';
 
                 const reader = new FileReader();
 
-                reader.onload = function(event) {
+                reader.onload = async function(event) {
                     // Compress the file data using pako
                     const compressedData = pako.gzip(new Uint8Array(event.target.result));
-                    
-                    // Create a new FormData object and append the compressed file data
-                    const formData = new FormData();
-                    formData.append('file', new Blob([compressedData], { type: 'application/gzip' }), file.name + '.gz');
+                    const compressedBlob = new Blob([compressedData], { type: 'application/gzip' });
 
-                    // Upload the compressed file
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', '/upload', true);
+                    statusMessage.textContent = 'Uploading file...';
+                    await uploadFileInChunks(compressedBlob);
 
-                    xhr.upload.onprogress = function(event) {
-                        if (event.lengthComputable) {
-                            const percentComplete = (event.loaded / event.total) * 100;
-                            progressBar.value = percentComplete;
-                        }
-                    };
-
-                    xhr.onload = function() {
-                        if (xhr.status === 200) {
-                            statusMessage.textContent = 'File uploaded and decompressed successfully';
-                        } else {
-                            statusMessage.textContent = 'Upload failed';
-                        }
-                        uploadButton.disabled = false;  // Re-enable the upload button
-                    };
-
-                    xhr.onerror = function() {
-                        statusMessage.textContent = 'Upload error';
-                        uploadButton.disabled = false;  // Re-enable the upload button
-                    };
-
-                    xhr.send(formData);
+                    // Reset status and button after upload
+                    uploadButton.disabled = false;
                 };
 
                 reader.readAsArrayBuffer(file);

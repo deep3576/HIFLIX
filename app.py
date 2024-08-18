@@ -32,21 +32,25 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
 
     if file:
-        filename = file.filename
-        compressed_file_path = os.path.join(UPLOAD_FOLDER, filename)
+        # Save the compressed chunk
+        chunk_filename = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(chunk_filename, 'ab') as chunk_file:
+            chunk_file.write(file.read())
 
-        # Save the compressed file
-        file.save(compressed_file_path)
+        # Check if all chunks have been received and then decompress
+        # For simplicity, assuming a single chunk is received for demonstration.
+        # In a complete implementation, you need to manage chunk identifiers and validate complete upload.
+        try:
+            decompressed_file_path = os.path.join(UPLOAD_FOLDER, file.filename.rstrip('.gz'))
+            with open(chunk_filename, 'rb') as compressed_file:
+                with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
+                    with open(decompressed_file_path, 'wb') as decompressed_file:
+                        decompressed_file.write(gz_file.read())
+            os.remove(chunk_filename)  # Optionally remove the compressed file
+            return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
 
-        # Decompress the file
-        decompressed_file_path = os.path.join(UPLOAD_FOLDER, filename.rstrip('.gz'))
-        with open(compressed_file_path, 'rb') as compressed_file:
-            with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
-                with open(decompressed_file_path, 'wb') as decompressed_file:
-                    decompressed_file.write(gz_file.read())
-
-        os.remove(compressed_file_path)  # Optionally remove the compressed file
-        return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
+        except Exception as e:
+            return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])

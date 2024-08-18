@@ -102,113 +102,140 @@
     </head>
     
     <body>
-        <div class="container">
-            <h1>Upload File</h1>
-            <input type="file" id="fileInput" />
-            <button id="uploadButton">Upload</button>
-            <div id="statusMessage"></div>
-            <progress id="progressBar" value="0" max="100"></progress>
-            <div id="estimatedTime"></div>
-        </div>
-    
-        <script>
-            const INITIAL_CHUNK_SIZE = 1024 * 1024; // Start with 1 MB
-            const MAX_CHUNK_SIZE = 10 * 1024 * 1024; // Max 10 MB
-            const MIN_CHUNK_SIZE = 512 * 1024; // Min 512 KB
-    
-            async function uploadFileInChunks(file) {
-                let chunkSize = INITIAL_CHUNK_SIZE;
-                let start = 0;
-                let totalChunks = Math.ceil(file.size / chunkSize);
-                let uploadUrl = '/upload'; // Your server endpoint
-                const statusMessage = document.getElementById('statusMessage');
-                const progressBar = document.getElementById('progressBar');
-                const estimatedTimeDiv = document.getElementById('estimatedTime');
-    
-                // Change file extension before upload
-                const tempFileName = file.name.replace(/\.[^/.]+$/, ".temp");
-                const tempFile = new File([file], tempFileName, { type: file.type });
-    
-                while (start < file.size) {
-                    const end = Math.min(start + chunkSize, file.size);
-                    const chunk = file.slice(start, end);
-                    const formData = new FormData();
-                    formData.append('file', chunk, tempFileName);
-                    formData.append('start', start);
-    
-                    let uploadStartTime = Date.now();
-                    try {
-                        const response = await fetch(uploadUrl, {
-                            method: 'POST',
-                            body: formData
-                        });
-    
-                        if (!response.ok) {
-                            throw new Error('Upload failed');
+        <body>
+            <div class="container">
+                <h1>Upload File</h1>
+                <input type="file" id="fileInput" />
+                <button id="uploadButton">Upload</button>
+                <div id="statusMessage"></div>
+                <progress id="progressBar" value="0" max="100"></progress>
+                <div id="estimatedTime"></div>
+            </div>
+            <script>
+                const INITIAL_CHUNK_SIZE = 1024 * 1024; // Start with 1 MB
+                const MAX_CHUNK_SIZE = 10 * 1024 * 1024; // Max 10 MB
+                const MIN_CHUNK_SIZE = 512 * 1024; // Min 512 KB
+        
+                async function uploadFileInChunks(file) {
+                    let chunkSize = INITIAL_CHUNK_SIZE;
+                    let start = 0;
+                    let totalChunks = Math.ceil(file.size / chunkSize);
+                    let uploadUrl = '/upload'; // Your server endpoint
+                    const statusMessage = document.getElementById('statusMessage');
+                    const progressBar = document.getElementById('progressBar');
+                    const estimatedTimeDiv = document.getElementById('estimatedTime');
+        
+                    const originalFileName = file.name;
+                    const tempFileName = originalFileName.replace(/\.[^/.]+$/, "_temp$&");
+                    const tempFile = new File([file], tempFileName, { type: file.type });
+        
+                    let startTime = Date.now();
+                    let lastUpdateTime = startTime;
+                    let lastUpdatePosition = 0;
+        
+                    while (start < file.size) {
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+                        const formData = new FormData();
+                        formData.append('file', chunk, tempFileName);
+                        formData.append('start', start);
+        
+                        try {
+                            const uploadStartTime = Date.now();
+                            const response = await fetch(uploadUrl, {
+                                method: 'POST',
+                                body: formData
+                            });
+        
+                            if (!response.ok) {
+                                throw new Error('Upload failed');
+                            }
+        
+                            const uploadEndTime = Date.now();
+                            const uploadTime = uploadEndTime - uploadStartTime;
+                            const currentPosition = end;
+                            const timeElapsed = uploadEndTime - startTime;
+                            const totalSize = file.size;
+                            const uploadedSize = currentPosition;
+                            const averageSpeed = uploadedSize / timeElapsed;
+                            const remainingSize = totalSize - uploadedSize;
+                            const remainingTime = Math.ceil(remainingSize / averageSpeed);
+        
+                            // Update progress
+                            start = end;
+                            const percentComplete = (start / file.size) * 100;
+                            progressBar.value = percentComplete;
+        
+                            // Update estimated time
+                            estimatedTimeDiv.textContent = `Remaining Time: ${formatTime(remainingTime)}`;
+        
+                            lastUpdateTime = uploadEndTime;
+                            lastUpdatePosition = currentPosition;
+        
+                        } catch (error) {
+                            statusMessage.textContent = `Upload error: ${error.message}`;
+                            statusMessage.className = 'error';
+                            return;
                         }
-    
-                        let uploadEndTime = Date.now();
-                        let uploadTime = uploadEndTime - uploadStartTime;
-    
-                        // Update progress
-                        start = end;
-                        const percentComplete = (start / file.size) * 100;
-                        progressBar.value = percentComplete;
-    
+                    }
+        
+                    // Notify server to rename file after upload
+                    try {
+                        const response = await fetch(`/upload/rename?filename=${encodeURIComponent(originalFileName)}&tempFilename=${encodeURIComponent(tempFileName)}`, {
+                            method: 'POST'
+                        });
+        
+                        if (!response.ok) {
+                            throw new Error('File renaming failed');
+                        }
+        
+                        statusMessage.textContent = 'File uploaded successfully';
+                        statusMessage.className = 'success';
+        
+                        // Redirect to home page after upload is complete
+                        setTimeout(() => {
+                            window.location.href = '/'; // Redirect to home page
+                        }, 1000); // Delay to ensure the status message is visible
+        
                     } catch (error) {
-                        statusMessage.textContent = `Upload error: ${error.message}`;
+                        statusMessage.textContent = `File renaming error: ${error.message}`;
                         statusMessage.className = 'error';
-                        return;
                     }
                 }
-    
-                // Notify server to rename file after upload
-                try {
-                    const response = await fetch(`/upload/rename?filename=${encodeURIComponent(file.name)}&tempFilename=${encodeURIComponent(tempFileName)}`, {
-                        method: 'POST'
-                    });
-    
-                    if (!response.ok) {
-                        throw new Error('File renaming failed');
+        
+                function formatTime(milliseconds) {
+                    const seconds = Math.floor(milliseconds / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const hours = Math.floor(minutes / 60);
+                    return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+                }
+        
+                document.getElementById('uploadButton').addEventListener('click', async function() {
+                    const fileInput = document.getElementById('fileInput');
+                    const file = fileInput.files[0];
+                    const uploadButton = document.getElementById('uploadButton');
+                    const statusMessage = document.getElementById('statusMessage');
+                    const progressBar = document.getElementById('progressBar');
+                    const estimatedTimeDiv = document.getElementById('estimatedTime');
+        
+                    if (file) {
+                        uploadButton.disabled = true;
+                        statusMessage.textContent = 'Uploading file...';
+                        estimatedTimeDiv.textContent = ''; // Clear any previous estimated time
+        
+                        await uploadFileInChunks(file);
+        
+                        // Reset status and button after upload
+                        uploadButton.disabled = false;
+                    } else {
+                        alert('No file selected');
                     }
-    
-                    statusMessage.textContent = 'File uploaded successfully';
-                    statusMessage.className = 'success';
-    
-                    // Redirect to home page after upload is complete
-                    setTimeout(() => {
-                        window.location.href = '/'; // Redirect to home page
-                    }, 10000); // Delay to ensure the status message is visible
-    
-                } catch (error) {
-                    statusMessage.textContent = `File renaming error: ${error.message}`;
-                    statusMessage.className = 'error';
-                }
-            }
-    
-            document.getElementById('uploadButton').addEventListener('click', async function() {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
-                const uploadButton = document.getElementById('uploadButton');
-                const statusMessage = document.getElementById('statusMessage');
-                const progressBar = document.getElementById('progressBar');
-                const estimatedTimeDiv = document.getElementById('estimatedTime');
-    
-                if (file) {
-                    uploadButton.disabled = true;
-                    statusMessage.textContent = 'Uploading file...';
-                    estimatedTimeDiv.textContent = ''; // Clear any previous estimated time
-    
-                    await uploadFileInChunks(file);
-    
-                    // Reset status and button after upload
-                    uploadButton.disabled = false;
-                } else {
-                    alert('No file selected');
-                }
-            });
-        </script>
-    </body>
+                });
+            </script>
+            
+
+
+     </body>
 </head>
 <body>
     <div id="app">

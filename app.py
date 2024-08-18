@@ -24,21 +24,53 @@ def get_movies():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+    start = int(request.form.get('start', 0))
+    filename = file.filename
+    temp_filename = filename.replace('.', '_temp.')
 
-    # Save the file directly
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    # Define the path for the temporary file
+    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    
+    # Open the file in append mode
+    with open(temp_path, 'ab') as f:
+        file.seek(0)
+        f.write(file.read())
+    
+    # Respond with a success message
+    return jsonify({'message': 'Chunk uploaded successfully'})
 
-    try:
-        file.save(file_path)
-        return jsonify({'message': 'File uploaded successfully'}), 200
-    except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+@app.route('/upload/status', methods=['GET'])
+def upload_status():
+    filename = request.args.get('filename')
+    temp_filename = filename.replace('.', '_temp.')
+
+    # Define the path for the temporary file
+    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    
+    if os.path.exists(temp_path):
+        file_size = os.path.getsize(temp_path)
+    else:
+        file_size = 0
+
+    return jsonify({'resumeFrom': file_size})
+
+@app.route('/upload/verify', methods=['GET'])
+def verify_upload():
+    filename = request.args.get('filename')
+    temp_filename = filename.replace('.', '_temp.')
+
+    # Define the path for the temporary file
+    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    
+    if os.path.exists(temp_path):
+        file_size = os.path.getsize(temp_path)
+    else:
+        file_size = 0
+
+    return jsonify({'size': file_size})
+
+
 
 
 # Endpoint to stream a movie

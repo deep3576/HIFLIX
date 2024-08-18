@@ -125,17 +125,13 @@
                     const progressBar = document.getElementById('progressBar');
                     const estimatedTimeDiv = document.getElementById('estimatedTime');
         
-                    
-        
                     let startTime = Date.now();
-                    let lastUpdateTime = startTime;
-                    let lastUpdatePosition = 0;
         
                     while (start < file.size) {
                         const end = Math.min(start + chunkSize, file.size);
                         const chunk = file.slice(start, end);
                         const formData = new FormData();
-                        formData.append('file', chunk, tempFileName);
+                        formData.append('file', chunk);
                         formData.append('start', start);
         
                         try {
@@ -167,9 +163,6 @@
                             // Update estimated time
                             estimatedTimeDiv.textContent = `Remaining Time: ${formatTime(remainingTime)}`;
         
-                            lastUpdateTime = uploadEndTime;
-                            lastUpdatePosition = currentPosition;
-        
                         } catch (error) {
                             statusMessage.textContent = `Upload error: ${error.message}`;
                             statusMessage.className = 'error';
@@ -177,18 +170,14 @@
                         }
                     }
         
-            
+                    statusMessage.textContent = 'File uploaded successfully';
+                    statusMessage.className = 'success';
         
-                        statusMessage.textContent = 'File uploaded successfully';
-                        statusMessage.className = 'success';
-        
-                        // Redirect to home page after upload is complete
-                        setTimeout(() => {
-                            window.location.href = '/'; // Redirect to home page
-                        }, 1000); // Delay to ensure the status message is visible
-        
-                    } 
-                
+                    // Redirect to home page after upload is complete
+                    setTimeout(() => {
+                        window.location.href = '/'; // Redirect to home page
+                    }, 1000); // Delay to ensure the status message is visible
+                }
         
                 function formatTime(milliseconds) {
                     const seconds = Math.floor(milliseconds / 1000);
@@ -219,7 +208,7 @@
                     }
                 });
             </script>
-            
+        
 
 
      </body>

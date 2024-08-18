@@ -6,68 +6,200 @@
     <title>My Movie App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-
-    <h1>Upload File to Server </h1>
-    <input type="file" id="fileInput" />
-    <button id="uploadButton">Upload</button>
-    <div id="statusMessage"></div>
-    <progress id="progressBar" value="0" max="100" style="width: 100%; margin-top: 10px;"></progress>
-    <script>
-        const CHUNK_SIZE = 1024 * 1024; // 1 MB
-
-        async function uploadFileInChunks(file) {
-            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-            const uploadUrl = '/upload'; // Your server endpoint
-            const statusMessage = document.getElementById('statusMessage');
-            const progressBar = document.getElementById('progressBar');
-
-            for (let start = 0; start < file.size; start += CHUNK_SIZE) {
-                const end = Math.min(start + CHUNK_SIZE, file.size);
-                const chunk = file.slice(start, end);
-                const formData = new FormData();
-                formData.append('file', chunk, file.name); // Use the original file name
-
-                try {
-                    const response = await fetch(uploadUrl, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (response.ok) {
-                        const uploadedChunks = Math.ceil(end / CHUNK_SIZE);
-                        const percentComplete = (uploadedChunks / totalChunks) * 100;
+    
+    <head>
+        <title>File Upload with Dynamic Chunking</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+    
+            .container {
+                background: #ffffff;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+                max-width: 500px;
+                width: 100%;
+                text-align: center;
+            }
+    
+            h1 {
+                margin-bottom: 20px;
+                color: #333;
+            }
+    
+            input[type="file"] {
+                margin-bottom: 20px;
+                display: inline-block;
+            }
+    
+            button {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px 20px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+    
+            button:disabled {
+                background-color: #6c757d;
+                cursor: not-allowed;
+            }
+    
+            button:hover:not(:disabled) {
+                background-color: #0056b3;
+            }
+    
+            #statusMessage {
+                margin-top: 10px;
+                font-size: 16px;
+                color: #333;
+            }
+    
+            progress {
+                width: 100%;
+                height: 20px;
+                margin-top: 10px;
+                border-radius: 4px;
+                appearance: none;
+            }
+    
+            progress::-webkit-progress-bar {
+                background-color: #e9ecef;
+                border-radius: 4px;
+            }
+    
+            progress::-webkit-progress-value {
+                background-color: #007bff;
+                border-radius: 4px;
+            }
+    
+            .error {
+                color: #dc3545;
+            }
+    
+            .success {
+                color: #28a745;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Upload File</h1>
+            <input type="file" id="fileInput" />
+            <button id="uploadButton">Upload</button>
+            <div id="statusMessage"></div>
+            <progress id="progressBar" value="0" max="100"></progress>
+        </div>
+    
+        <script>
+            const INITIAL_CHUNK_SIZE = 1024 * 1024; // Start with 1 MB
+            const MAX_CHUNK_SIZE = 10 * 1024 * 1024; // Max 10 MB
+            const MIN_CHUNK_SIZE = 512 * 1024; // Min 512 KB
+            const SPEED_ADJUSTMENT_INTERVAL = 5000; // Adjust every 5 seconds
+    
+            async function uploadFileInChunks(file) {
+                let chunkSize = INITIAL_CHUNK_SIZE;
+                let start = 0;
+                let totalChunks = Math.ceil(file.size / chunkSize);
+                let uploadUrl = '/upload'; // Your server endpoint
+                const statusMessage = document.getElementById('statusMessage');
+                const progressBar = document.getElementById('progressBar');
+                let lastUploadTime = Date.now();
+                let uploadedBytes = 0;
+    
+                while (start < file.size) {
+                    const end = Math.min(start + chunkSize, file.size);
+                    const chunk = file.slice(start, end);
+                    const formData = new FormData();
+                    formData.append('file', chunk, file.name);
+    
+                    let uploadStartTime = Date.now();
+                    try {
+                        const response = await fetch(uploadUrl, {
+                            method: 'POST',
+                            body: formData
+                        });
+    
+                        if (!response.ok) {
+                            throw new Error('Upload failed');
+                        }
+    
+                        let uploadEndTime = Date.now();
+                        let uploadTime = uploadEndTime - uploadStartTime;
+                        let speed = chunkSize / (uploadTime / 1000); // bytes per second
+                        let speedInMBps = speed / (1024 * 1024); // MBps
+    
+                        // Adjust chunk size based on upload speed
+                        if (speedInMBps < 1) {
+                            chunkSize = Math.max(MIN_CHUNK_SIZE, chunkSize / 2); // Reduce chunk size
+                        } else if (speedInMBps > 5) {
+                            chunkSize = Math.min(MAX_CHUNK_SIZE, chunkSize * 2); // Increase chunk size
+                        }
+    
+                        // Update progress
+                        uploadedBytes += chunkSize;
+                        const percentComplete = (uploadedBytes / file.size) * 100;
                         progressBar.value = percentComplete;
-                    } else {
-                        throw new Error('Upload failed');
+                        start = end;
+    
+                        // Adjust total chunks based on new chunk size
+                        totalChunks = Math.ceil(file.size / chunkSize);
+    
+                        // Log for debugging
+                        console.log(`Speed: ${speedInMBps.toFixed(2)} MBps, Chunk Size: ${chunkSize} bytes`);
+    
+                    } catch (error) {
+                        statusMessage.textContent = `Upload error: ${error.message}`;
+                        statusMessage.className = 'error';
+                        return;
                     }
-                } catch (error) {
-                    statusMessage.textContent = `Upload error: ${error.message}`;
-                    return;
                 }
+    
+                statusMessage.textContent = 'File uploaded successfully';
+                statusMessage.className = 'success';
             }
-            statusMessage.textContent = 'File uploaded successfully';
-        }
+    
+            document.getElementById('uploadButton').addEventListener('click', async function() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                const uploadButton = document.getElementById('uploadButton');
+                const statusMessage = document.getElementById('statusMessage');
+                const progressBar = document.getElementById('progressBar');
+    
+                if (file) {
+                    uploadButton.disabled = true;
+                    statusMessage.textContent = 'Uploading file...';
+    
+                    await uploadFileInChunks(file);
+    
+                    // Reset status and button after upload
+                    uploadButton.disabled = false;
+                } else {
+                    alert('No file selected');
+                }
+            });
+        </script>
+    </body>
+    </html>
+    
 
-        document.getElementById('uploadButton').addEventListener('click', async function() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            const uploadButton = document.getElementById('uploadButton');
-            const statusMessage = document.getElementById('statusMessage');
-            const progressBar = document.getElementById('progressBar');
 
-            if (file) {
-                uploadButton.disabled = true;
-                statusMessage.textContent = 'Uploading file...';
 
-                await uploadFileInChunks(file);
 
-                // Reset status and button after upload
-                uploadButton.disabled = false;
-            } else {
-                alert('No file selected');
-            }
-        });
-    </script>
+
+
+
 </head>
 <body>
     <div id="app">

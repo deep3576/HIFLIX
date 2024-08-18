@@ -25,7 +25,7 @@
                 const end = Math.min(start + CHUNK_SIZE, file.size);
                 const chunk = file.slice(start, end);
                 const formData = new FormData();
-                formData.append('file', chunk);
+                formData.append('file', chunk, 'chunk.gz'); // Give a name to each chunk
 
                 try {
                     const response = await fetch(uploadUrl, {

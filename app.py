@@ -40,11 +40,6 @@ def upload_file():
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
 
-@app.route('/uploads/<filename>', methods=['GET'])
-def serve_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
-
-
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])
 def stream_movie(movie_name):

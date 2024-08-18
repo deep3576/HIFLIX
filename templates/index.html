@@ -125,9 +125,7 @@
                     const progressBar = document.getElementById('progressBar');
                     const estimatedTimeDiv = document.getElementById('estimatedTime');
         
-                    const originalFileName = file.name;
-                    const tempFileName = originalFileName.replace(/\.[^/.]+$/, "_temp$&");
-                    const tempFile = new File([file], tempFileName, { type: file.type });
+                    
         
                     let startTime = Date.now();
                     let lastUpdateTime = startTime;
@@ -179,15 +177,7 @@
                         }
                     }
         
-                    // Notify server to rename file after upload
-                    try {
-                        const response = await fetch(`/upload/rename?filename=${encodeURIComponent(originalFileName)}&tempFilename=${encodeURIComponent(tempFileName)}`, {
-                            method: 'POST'
-                        });
-        
-                        if (!response.ok) {
-                            throw new Error('File renaming failed');
-                        }
+            
         
                         statusMessage.textContent = 'File uploaded successfully';
                         statusMessage.className = 'success';
@@ -197,11 +187,8 @@
                             window.location.href = '/'; // Redirect to home page
                         }, 1000); // Delay to ensure the status message is visible
         
-                    } catch (error) {
-                        statusMessage.textContent = `File renaming error: ${error.message}`;
-                        statusMessage.className = 'error';
-                    }
-                }
+                    } 
+                
         
                 function formatTime(milliseconds) {
                     const seconds = Math.floor(milliseconds / 1000);

@@ -11,7 +11,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 3000 * 1024 * 1024
 MOVIES_FOLDER = 'E:/MoviesDatabase'
 #MOVIES_FOLDER = '/Users/inderdeepsingh/Documents/'
-THUMBNAILS_FOLDER = 'static/thumbnails'
+THUMBNAILS_FOLDER = './static/thumbnails/'
 UPLOAD_FOLDER = 'E:/MoviesDatabase'
 #UPLOAD_FOLDER = '/Users/inderdeepsingh/Documents'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -41,19 +41,6 @@ def upload_file():
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
 
-@app.route('/upload/rename', methods=['POST'])
-def rename_file():
-    filename = request.args.get('filename')
-    temp_filename = request.args.get('tempFilename')
-
-    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
-    final_path = os.path.join(UPLOAD_FOLDER, filename)
-
-    if os.path.exists(temp_path):
-        os.rename(temp_path, final_path)
-        return jsonify({'message': 'File renamed successfully'})
-    else:
-        return jsonify({'message': 'File not found'}), 404
 
 
 # Endpoint to stream a movie

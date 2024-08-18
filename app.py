@@ -23,9 +23,6 @@ def get_movies():
     return jsonify(movies)
 
 
-
-
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -35,25 +32,35 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
-    # Save the compressed chunk
     chunk_filename = os.path.join(UPLOAD_FOLDER, file.filename)
+
+    # Save the compressed chunk
     with open(chunk_filename, 'ab') as chunk_file:
         chunk_file.write(file.read())
 
+    # For simplicity, this example assumes a single chunk. In a real application, you should
+    # implement logic to check if all chunks have been uploaded.
+
     try:
-        # Assume all chunks are received, then decompress
+        # Check if the file is complete before decompressing
         decompressed_file_path = os.path.join(UPLOAD_FOLDER, file.filename.rstrip('.gz'))
+        
+        # Ensure the file is complete before attempting to decompress
+        if os.path.getsize(chunk_filename) > 0:
+            with open(chunk_filename, 'rb') as compressed_file:
+                with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
+                    with open(decompressed_file_path, 'wb') as decompressed_file:
+                        decompressed_file.write(gz_file.read())
+            os.remove(chunk_filename)  # Optionally remove the compressed file
 
-        with open(chunk_filename, 'rb') as compressed_file:
-            with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
-                with open(decompressed_file_path, 'wb') as decompressed_file:
-                    decompressed_file.write(gz_file.read())
-        os.remove(chunk_filename)  # Optionally remove the compressed file
-
-        return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
+            return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
+        else:
+            return jsonify({'error': 'Incomplete file received'}), 400
 
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+
 
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])

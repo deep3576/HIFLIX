@@ -5,11 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Movie App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <h1>File Upload and Management</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
-    </form>
+    <h1>Upload File</h1>
+    <input type="file" id="fileInput" />
+    <button id="uploadButton">Upload</button>
+    <progress id="progressBar" value="0" max="100" style="width: 100%; margin-top: 10px;"></progress>
+
+    <script>
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (file) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload', true);
+
+                xhr.upload.onprogress = function(event) {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        document.getElementById('progressBar').value = percentComplete;
+                    }
+                };
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        alert('File uploaded successfully');
+                    } else {
+                        alert('Upload failed');
+                    }
+                };
+
+                xhr.onerror = function() {
+                    alert('Upload error');
+                };
+
+                const formData = new FormData();
+                formData.append('file', file);
+                xhr.send(formData);
+            } else {
+                alert('No file selected');
+            }
+        });
+    </script>
 </head>
 <body>
     <div id="app">

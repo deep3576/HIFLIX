@@ -1,9 +1,16 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
 import os
+from werkzeug.utils import secure_filename
+
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+app.config['MAX_CONTENT_LENGTH'] = 3000 * 1024 * 1024
 MOVIES_FOLDER = 'E:/MoviesDatabase'
+#MOVIES_FOLDER = '/Users/inderdeepsingh/Documents/'
 THUMBNAILS_FOLDER = 'static/thumbnails'
+UPLOAD_FOLDER = 'E:/MoviesDatabase'
+#UPLOAD_FOLDER = '/Users/inderdeepsingh/Documents'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Endpoint to get list of movies
 @app.route('/api/movies', methods=['GET'])
@@ -14,14 +21,16 @@ def get_movies():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
-        return redirect(request.url)
+        return jsonify({'error': 'No file part'}), 400
+
     file = request.files['file']
     if file.filename == '':
-        return redirect(url_for('index'))
-    if file :
-        filename = file.filename
-        file.save(os.path.join(app.config['MOVIES_FOLDER'], filename))
-        return redirect(url_for('index'))
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(UPLOAD_FOLDER, filename))
+        return jsonify({'message': 'File uploaded successfully'}), 200
 
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])

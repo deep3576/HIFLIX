@@ -29,17 +29,20 @@ def upload_file():
     start = int(request.form.get('start', 0))
     filename = file.filename
 
-    # Define the path for the temporary file
-    temp_path = os.path.join(UPLOAD_FOLDER, filename)
+    # Define the path for the file
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
     
     # Open the file in append mode
-    with open(temp_path, 'ab') as f:
+    with open(file_path, 'ab') as f:
         file.seek(0)
         f.write(file.read())
     
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
 
+@app.route('/uploads/<filename>', methods=['GET'])
+def serve_file(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 
 # Endpoint to stream a movie

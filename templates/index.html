@@ -10,36 +10,49 @@
     <button id="uploadButton">Upload</button>
     <progress id="progressBar" value="0" max="100" style="width: 100%; margin-top: 10px;"></progress>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
     <script>
-        document.getElementById('uploadButton').addEventListener('click', function() {
+        document.getElementById('uploadButton').addEventListener('click', async function() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (file) {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/upload', true);
+                const reader = new FileReader();
 
-                xhr.upload.onprogress = function(event) {
-                    if (event.lengthComputable) {
-                        const percentComplete = (event.loaded / event.total) * 100;
-                        document.getElementById('progressBar').value = percentComplete;
-                    }
+                reader.onload = function(event) {
+                    // Compress the file data using pako
+                    const compressedData = pako.gzip(new Uint8Array(event.target.result));
+                    
+                    // Create a new FormData object and append the compressed file data
+                    const formData = new FormData();
+                    formData.append('file', new Blob([compressedData], { type: 'application/gzip' }), file.name + '.gz');
+
+                    // Upload the compressed file
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/upload', true);
+
+                    xhr.upload.onprogress = function(event) {
+                        if (event.lengthComputable) {
+                            const percentComplete = (event.loaded / event.total) * 100;
+                            document.getElementById('progressBar').value = percentComplete;
+                        }
+                    };
+
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            alert('File uploaded successfully');
+                        } else {
+                            alert('Upload failed');
+                        }
+                    };
+
+                    xhr.onerror = function() {
+                        alert('Upload error');
+                    };
+
+                    xhr.send(formData);
                 };
 
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        alert('File uploaded successfully');
-                    } else {
-                        alert('Upload failed');
-                    }
-                };
-
-                xhr.onerror = function() {
-                    alert('Upload error');
-                };
-
-                const formData = new FormData();
-                formData.append('file', file);
-                xhr.send(formData);
+                reader.readAsArrayBuffer(file);
             } else {
                 alert('No file selected');
             }

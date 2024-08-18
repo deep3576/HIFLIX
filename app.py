@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
 import os
 from werkzeug.utils import secure_filename
+import gzip
 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -18,6 +19,9 @@ def get_movies():
     movies = os.listdir(MOVIES_FOLDER)
     return jsonify(movies)
 
+
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -28,9 +32,21 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
 
     if file:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        return jsonify({'message': 'File uploaded successfully'}), 200
+        filename = file.filename
+        compressed_file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+        # Save the compressed file
+        file.save(compressed_file_path)
+
+        # Decompress the file
+        decompressed_file_path = os.path.join(UPLOAD_FOLDER, filename.rstrip('.gz'))
+        with open(compressed_file_path, 'rb') as compressed_file:
+            with gzip.GzipFile(fileobj=io.BytesIO(compressed_file.read())) as gz_file:
+                with open(decompressed_file_path, 'wb') as decompressed_file:
+                    decompressed_file.write(gz_file.read())
+
+        os.remove(compressed_file_path)  # Optionally remove the compressed file
+        return jsonify({'message': 'File uploaded and decompressed successfully'}), 200
 
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])

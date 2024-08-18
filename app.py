@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, send_file, abort
 import os
 from werkzeug.utils import secure_filename
 import gzip
@@ -11,7 +12,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 3000 * 1024 * 1024
 MOVIES_FOLDER = 'E:/MoviesDatabase'
 #MOVIES_FOLDER = '/Users/inderdeepsingh/Documents/'
-THUMBNAILS_FOLDER = 'thumbnails'
+THUMBNAILS_FOLDER = './thumbnails'
 UPLOAD_FOLDER = 'E:/MoviesDatabase'
 #UPLOAD_FOLDER = '/Users/inderdeepsingh/Documents'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -39,6 +40,54 @@ def upload_file():
     
     # Respond with a success message
     return jsonify({'message': 'Chunk uploaded successfully'})
+
+
+
+
+@app.route('/media/<filename>')
+def stream_file(filename):
+    file_path = os.path.join(MOVIES_FOLDER, filename)
+    
+    if not os.path.exists(file_path):
+        abort(404)
+    
+    # Handle range requests for streaming
+    range_header = request.headers.get('Range', None)
+    if range_header:
+        size = os.path.getsize(file_path)
+        byte1, byte2 = 0, None
+        range_match = range_header.split('=')[-1]
+        if '-' in range_match:
+            byte1, byte2 = range_match.split('-')
+            byte1 = int(byte1)
+            if byte2:
+                byte2 = int(byte2)
+            else:
+                byte2 = size - 1
+
+        length = byte2 - byte1 + 1
+        with open(file_path, 'rb') as f:
+            f.seek(byte1)
+            data = f.read(length)
+        
+        response = send_file(
+            file_path,
+            as_attachment=False,
+            conditional=True
+        )
+        response.headers.add('Content-Range', f'bytes {byte1}-{byte2}/{size}')
+        response.headers.add('Accept-Ranges', 'bytes')
+        response.headers.add('Content-Length', str(length))
+        response.headers.add('Content-Type', 'video/mp4')  # Adjust content type as needed
+        return response
+    
+    return send_file(file_path)
+
+
+
+
+
+
 
 # Endpoint to stream a movie
 @app.route('/movies/<movie_name>', methods=['GET'])

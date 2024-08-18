@@ -11,7 +11,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 3000 * 1024 * 1024
 MOVIES_FOLDER = 'E:/MoviesDatabase'
 #MOVIES_FOLDER = '/Users/inderdeepsingh/Documents/'
-THUMBNAILS_FOLDER = './static/thumbnails/'
+THUMBNAILS_FOLDER = 'thumbnails'
 UPLOAD_FOLDER = 'E:/MoviesDatabase'
 #UPLOAD_FOLDER = '/Users/inderdeepsingh/Documents'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

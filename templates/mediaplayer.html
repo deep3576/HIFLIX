@@ -1,27 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Media Player</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #000;
-            color: #fff;
-            margin: 0;
-        }
-        video {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
+    <title>MKV Video Player</title>
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
 </head>
 <body>
-    <video id="mediaPlayer" controls>
-        <source src="/media/sample.mp4" type="video/mp4"> <!-- Adjust the source as needed -->
+    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="264">
+        <source src="/media/sample.mkv" type="video/x-matroska">
         Your browser does not support the video tag.
     </video>
+    <script>
+        var player = videojs('my-video');
+        player.on('error', function() {
+            console.log('Error occurred: ', player.error());
+        });
+    </script>
 </body>
 </html>

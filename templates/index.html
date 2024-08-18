@@ -8,6 +8,7 @@
     <h1>Upload File</h1>
     <input type="file" id="fileInput" />
     <button id="uploadButton">Upload</button>
+    <div id="statusMessage"></div>
     <progress id="progressBar" value="0" max="100" style="width: 100%; margin-top: 10px;"></progress>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
@@ -15,7 +16,15 @@
         document.getElementById('uploadButton').addEventListener('click', async function() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
+            const uploadButton = document.getElementById('uploadButton');
+            const statusMessage = document.getElementById('statusMessage');
+            const progressBar = document.getElementById('progressBar');
+
             if (file) {
+                // Disable the upload button and show status message
+                uploadButton.disabled = true;
+                statusMessage.textContent = 'Uploading...';
+
                 const reader = new FileReader();
 
                 reader.onload = function(event) {
@@ -33,20 +42,22 @@
                     xhr.upload.onprogress = function(event) {
                         if (event.lengthComputable) {
                             const percentComplete = (event.loaded / event.total) * 100;
-                            document.getElementById('progressBar').value = percentComplete;
+                            progressBar.value = percentComplete;
                         }
                     };
 
                     xhr.onload = function() {
                         if (xhr.status === 200) {
-                            alert('File uploaded successfully');
+                            statusMessage.textContent = 'File uploaded and decompressed successfully';
                         } else {
-                            alert('Upload failed');
+                            statusMessage.textContent = 'Upload failed';
                         }
+                        uploadButton.disabled = false;  // Re-enable the upload button
                     };
 
                     xhr.onerror = function() {
-                        alert('Upload error');
+                        statusMessage.textContent = 'Upload error';
+                        uploadButton.disabled = false;  // Re-enable the upload button
                     };
 
                     xhr.send(formData);
